@@ -539,6 +539,62 @@
     .module-body { padding: 0 20px 20px; }
     .completion-section { padding: 32px 20px; }
   }
+
+  /* IDENTITY SCREEN */
+  #identity-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--navy);
+    z-index: 9998;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 24px;
+  }
+  #identity-screen.visible { display: flex; }
+  #identity-screen .lock-card {
+    background: var(--navy-mid);
+    border: 1px solid rgba(0,168,232,0.2);
+    border-radius: 20px;
+    padding: 48px 40px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+  }
+  #identity-screen .id-icon { font-size: 40px; margin-bottom: 20px; }
+  #identity-screen h2 { font-size: 24px; font-weight: 700; margin-bottom: 10px; }
+  #identity-screen p { color: var(--gray-text); font-size: 13px; margin-bottom: 28px; line-height: 1.6; }
+  #identity-screen .pw-logo { margin-bottom: 28px; }
+  #identity-screen .pw-logo img { height: 30px; width: auto; }
+  #identity-screen .id-field {
+    width: 100%;
+    padding: 13px 16px;
+    background: rgba(255,255,255,0.05);
+    border: 1.5px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    color: var(--white);
+    font-size: 15px;
+    font-family: 'Poppins', sans-serif;
+    text-align: left;
+    margin-bottom: 12px;
+    transition: border-color 0.2s;
+  }
+  #identity-screen .id-field:focus { outline: none; border-color: var(--accent); }
+  #identity-screen .id-field.error { border-color: var(--red); }
+  #identity-screen .id-label {
+    display: block;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray-text);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+    margin-top: 4px;
+  }
+  #id-error { font-size: 12px; color: #fca5a5; margin-bottom: 12px; min-height: 18px; }
+
 </style>
 </head>
 <body>
@@ -553,7 +609,22 @@
     <input type="password" id="pw-input" placeholder="Enter access code" onkeydown="if(event.key==='Enter') checkPassword()">
     <div id="pw-error"></div>
     <button class="btn btn-primary" onclick="checkPassword()" style="width:100%;justify-content:center;padding:13px;">Access Training →</button>
+  
+<div id="identity-screen">
+  <div class="lock-card">
+    <div class="pw-logo"><img src="" id="id-logo-img" style="height:30px;width:auto;display:block;margin:0 auto;"></div>
+    <div class="id-icon">👋</div>
+    <h2>Before You Start</h2>
+    <p>We'll track your progress as you go. Your email is required so your completion is recorded in our system.</p>
+    <label class="id-label" for="id-firstname">First Name <span style="font-weight:400;opacity:0.5;">(optional)</span></label>
+    <input type="text" id="id-firstname" class="id-field" placeholder="Your first name">
+    <label class="id-label" for="id-email">Email Address <span style="color:var(--accent);">*</span></label>
+    <input type="email" id="id-email" class="id-field" placeholder="you@company.com" onkeydown="if(event.key==='Enter') submitIdentity()">
+    <div id="id-error"></div>
+    <button class="btn btn-primary" onclick="submitIdentity()" style="width:100%;justify-content:center;padding:13px;">Start Training →</button>
   </div>
+</div>
+
 </div>
 
 <header>
@@ -918,14 +989,9 @@
   <div class="completion-section" id="completion-section">
     <div class="completion-icon">🎯</div>
     <h2>Onboarding Complete</h2>
-    <p>You've finished all six modules. One last thing — let us know who completed this training so we can get you set up for the next step.</p>
-    <div class="form-fields">
-      <div class="form-group"><label>Full Name</label><input type="text" id="field-name" placeholder="Your name"></div>
-      <div class="form-group"><label>Company</label><input type="text" id="field-company" placeholder="Your company"></div>
-      <div class="form-group"><label>Email Address</label><input type="email" id="field-email" placeholder="you@company.com"></div>
-    </div>
-    <button class="btn btn-primary" onclick="submitCompletion()" style="padding:14px 32px;font-size:14px;">Submit & Complete ✓</button>
-    <div class="submit-success" id="submit-success">✅ You're all set! A Synexis team member will be in touch to confirm your training and next steps.</div>
+    <p id="completion-msg">Congratulations — you've completed all six modules of Synexis partner training.</p>
+    <div id="submit-success" style="display:none;margin-top:16px;padding:16px 20px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);border-radius:12px;font-size:14px;color:#86efac;">✅ Your training record has been submitted. A Synexis team member will be in touch to confirm your training and next steps.</div>
+    <div id="submit-error" style="display:none;margin-top:16px;padding:16px 20px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);border-radius:12px;font-size:13px;color:#fca5a5;"></div>
   </div>
 
 </div>
@@ -961,6 +1027,13 @@
     if (val.toLowerCase() === ACCESS_CODE) {
       document.getElementById('password-screen').style.display = 'none';
       sessionStorage.setItem('synexis_auth','1');
+      // Copy logo into identity screen
+      const pwLogo = document.querySelector('#password-screen .pw-logo img');
+      if (pwLogo) document.getElementById('id-logo-img').src = pwLogo.src;
+      // Show identity screen unless already submitted
+      if (!sessionStorage.getItem('synexis_identity')) {
+        document.getElementById('identity-screen').classList.add('visible');
+      }
     } else {
       input.classList.add('error');
       err.textContent = 'Incorrect access code. Please try again.';
@@ -969,6 +1042,11 @@
   }
   if (sessionStorage.getItem('synexis_auth') === '1') {
     document.getElementById('password-screen').style.display = 'none';
+    if (!sessionStorage.getItem('synexis_identity')) {
+      const pwLogo = document.querySelector('#password-screen .pw-logo img');
+      if (pwLogo) document.getElementById('id-logo-img').src = pwLogo.src;
+      document.getElementById('identity-screen').classList.add('visible');
+    }
   }
 
   function selectOption(el, questionId, letter, moduleNum) {
@@ -1126,6 +1204,7 @@
     document.getElementById('status-' + moduleNum).textContent = '✓ Complete';
     document.getElementById('num-' + moduleNum).textContent = '✓';
     completedModules++; updateProgress();
+    submitModuleToHubSpot(moduleNum);
   }
 
   function unlockNext(nextNum) {
@@ -1140,6 +1219,7 @@
     const completionEl = document.getElementById('completion-section');
     completionEl.classList.add('visible');
     setTimeout(() => completionEl.scrollIntoView({ behavior:'smooth', block:'start' }), 200);
+    submitCompletionToHubSpot();
   }
 
   function updateProgress() {
@@ -1147,15 +1227,81 @@
     document.getElementById('progress-text').textContent = completedModules + ' of 6 complete';
   }
 
-  function submitCompletion() {
-    const name = document.getElementById('field-name').value.trim();
-    const company = document.getElementById('field-company').value.trim();
-    const email = document.getElementById('field-email').value.trim();
-    if (!name || !company || !email) { alert('Please fill in all fields to complete your training.'); return; }
-    document.querySelector('#completion-section .btn-primary').style.display = 'none';
-    document.querySelector('.form-fields').style.display = 'none';
+  // ── HubSpot integration ───────────────────────────────────────────────────
+  const HS_PORTAL_ID = '243636346';
+  const HS_FORM_GUID = '3fdbe4fd-4a84-4c1e-a5d9-29ea1ceab896';
+  let hsEmail = '';
+  let hsFirstname = '';
+
+  function submitIdentity() {
+    const emailEl = document.getElementById('id-email');
+    const nameEl  = document.getElementById('id-firstname');
+    const errEl   = document.getElementById('id-error');
+    const email   = emailEl.value.trim();
+    const name    = nameEl.value.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      emailEl.classList.add('error');
+      errEl.textContent = 'Please enter a valid email address.';
+      return;
+    }
+    emailEl.classList.remove('error');
+    errEl.textContent = '';
+    hsEmail     = email;
+    hsFirstname = name;
+    sessionStorage.setItem('synexis_identity', JSON.stringify({ email, name }));
+    document.getElementById('identity-screen').classList.remove('visible');
+  }
+
+  // Restore identity from session storage on reload
+  (function() {
+    const saved = sessionStorage.getItem('synexis_identity');
+    if (saved) {
+      try {
+        const { email, name } = JSON.parse(saved);
+        hsEmail = email; hsFirstname = name;
+      } catch(e) {}
+    }
+  })();
+
+  function hsSubmit(fields) {
+    if (!hsEmail) return;
+    const params = new URLSearchParams();
+    params.append('email', hsEmail);
+    if (hsFirstname) params.append('firstname', hsFirstname);
+    fields.forEach(f => params.append(f.name, f.value));
+    params.append('hs_context', JSON.stringify({
+      pageUri: window.location.href,
+      pageName: 'Synexis Partner Training'
+    }));
+    fetch('https://forms.hubspot.com/uploads/form/v2/' + HS_PORTAL_ID + '/' + HS_FORM_GUID, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
+    }).catch(err => console.warn('HubSpot submit error:', err));
+  }
+
+  function submitModuleToHubSpot(moduleNum) {
+    const state  = moduleState[moduleNum];
+    const total  = state.questions.length;
+    const score  = state.correct + ' / ' + total + ' correct';
+    const answerParts = state.questions.map((qid, idx) => {
+      const letter = selected[qid] || '—';
+      return 'Q' + (idx + 1) + ': ' + letter + (selected[qid] === answers[qid] ? ' ✓' : ' ✗');
+    });
+    const answersStr = answerParts.join(', ');
+    hsSubmit([
+      { name: 'synexis_training_m' + moduleNum + '_score',   value: score },
+      { name: 'synexis_training_m' + moduleNum + '_answers', value: answersStr }
+    ]);
+  }
+
+  function submitCompletionToHubSpot() {
+    // HubSpot datetime fields expect epoch milliseconds as a string
+    const nowMs = String(Date.now());
+    hsSubmit([
+      { name: 'synexis_training_completed', value: nowMs }
+    ]);
     document.getElementById('submit-success').style.display = 'block';
-    completedModules = 6; updateProgress();
   }
 </script>
 </body>
